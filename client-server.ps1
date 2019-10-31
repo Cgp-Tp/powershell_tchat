@@ -2,6 +2,43 @@
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 
+Function Receive-TCPMessage {
+    Param ( 
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateNotNullOrEmpty()] 
+        [int] $Port
+    ) 
+    Process {
+        Try { 
+            # Set up endpoint and start listening
+            $endpoint = new-object System.Net.IPEndPoint([ipaddress]::any,$port) 
+            $listener = new-object System.Net.Sockets.TcpListener $EndPoint
+            $listener.start() 
+ 
+            # Wait for an incoming connection 
+            $data = $listener.AcceptTcpClient() 
+        
+            # Stream setup
+            $stream = $data.GetStream() 
+            $bytes = New-Object System.Byte[] 1024
+
+            # Read data from stream and write it to host
+            while (($i = $stream.Read($bytes,0,$bytes.Length)) -ne 0){
+                $EncodedText = New-Object System.Text.ASCIIEncoding
+                $data = $EncodedText.GetString($bytes,0, $i)
+                Write-Output $data
+            }
+         
+            # Close TCP connection and stop listening
+            $stream.close()
+            $listener.stop()
+        }
+        Catch {
+            "Receive Message failed with: `n" + $Error[0]
+        }
+    }
+}
+
 Function Send-TCPMessage { 
     Param ( 
             [Parameter(Mandatory=$true, Position=0)]
@@ -39,9 +76,13 @@ Function Send-TCPMessage {
     }
 }
 
+
+
+
+
+
 $Form                            = New-Object system.Windows.Forms.Form
 $Form.ClientSize                 = '403,400'
-$Form.BackColor                  = "#EFEBEB"
 $Form.text                       = "Form"
 $Form.TopMost                    = $false
 
@@ -59,6 +100,15 @@ $btnEnvoi.height                 = 30
 $btnEnvoi.location               = New-Object System.Drawing.Point(269,353)
 $btnEnvoi.Font                   = 'Microsoft Sans Serif,10'
 
+
+$Label2                          = New-Object system.Windows.Forms.Label
+$Label2.text                     = "Bonjour je suis le label 2"
+$Label2.AutoSize                 = $true
+$Label2.width                    = 363
+$Label2.height                   = 293
+$Label2.location                 = New-Object System.Drawing.Point(106,64)
+$Label2.Font                     = 'Microsoft Sans Serif,10'
+
 $Nom                             = New-Object system.Windows.Forms.Label
 $Nom.text                        = "Nom:"
 $Nom.AutoSize                    = $true
@@ -74,22 +124,28 @@ $TextBoxNom.height               = 20
 $TextBoxNom.location             = New-Object System.Drawing.Point(83,320)
 $TextBoxNom.Font                 = 'Microsoft Sans Serif,10'
 
-$ListBoxMsg                        = New-Object system.Windows.Forms.ListBox
-$ListBoxMsg.text                   = "listBox"
-$ListBoxMsg.width                  = 350
-$ListBoxMsg.height                 = 262
-$ListBoxMsg.location               = New-Object System.Drawing.Point(19,22)
 
-
-$btnEnvoi.add_Click({
-$ListBoxMsg.Items.Add("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
-Send-TCPMessage -Port 29800 -Endpoint 127.0.0.1 -message ("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
-$TextBoxMessage.Clear()
+$btnEnvoi.Add_Click({
+Send-TCPMessage -Port 29800 -Endpoint 127.0.0.1 -message 'Coucou'
+$Label2.Text = $TextBoxNom.Text, ': ', $TextBoxMessage.Text
 })
 
-
-
-$Form.controls.AddRange(@($TextBoxMessage,$btnEnvoi,$Label2,$Nom,$TextBoxNom,$ListBoxMsg))
+$Form.controls.AddRange(@($TextBoxMessage,$btnEnvoi,$Label2,$Nom,$TextBoxNom))
 
 $Form.AutoSize = $true
 $Form.ShowDialog()
+
+$msg = Receive-TCPMessage -Port 29800
+echo $msg
+
+
+
+
+
+
+#while(1)
+#{
+#$msg = Receive-TCPMessage -Port 29800
+#echo $msg
+#$Label2.Text = ($label2.Text),("`n"),$msg
+#}
