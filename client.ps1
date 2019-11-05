@@ -83,7 +83,7 @@ $ListBoxMsg.location               = New-Object System.Drawing.Point(19,22)
 
 $btnEnvoi.add_Click({
 $ListBoxMsg.Items.Add("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
-Send-TCPMessage -Port 29800 -Endpoint 127.0.0.1 -message ("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
+Send-TCPMessage -Port 29800 -Endpoint 192.168.0.22 -message ("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
 $TextBoxMessage.Clear()
 })
 
