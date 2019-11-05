@@ -41,13 +41,29 @@ $TextBoxMessage.height           = 20
 $TextBoxMessage.location         = New-Object System.Drawing.Point(84,226)
 $TextBoxMessage.Font             = 'Microsoft Sans Serif,10'
 
+$TextBoxIP                  = New-Object system.Windows.Forms.TextBox
+$TextBoxIP.multiline        = $false
+$TextBoxIP.width            = 150
+$TextBoxIP.height           = 20
+$TextBoxIP.Text             = "192.168.10.1"
+$TextBoxIP.location         = New-Object System.Drawing.Point(250,196)
+$TextBoxIP.Font             = 'Microsoft Sans Serif,10'
+
 $Label2                          = New-Object system.Windows.Forms.Label
 $Label2.text                     = "Nom"
 $Label2.AutoSize                 = $true
 $Label2.width                    = 25
 $Label2.height                   = 10
-$Label2.location                 = New-Object System.Drawing.Point(16,202)
+$Label2.location                 = New-Object System.Drawing.Point(16,196)
 $Label2.Font                     = 'Microsoft Sans Serif,10'
+
+$LabelIP                          = New-Object system.Windows.Forms.Label
+$LabelIP.text                     = "IP :"
+$LabelIP.AutoSize                 = $true
+$LabelIP.width                    = 25
+$LabelIP.height                   = 10
+$LabelIP.location                 = New-Object System.Drawing.Point(225,198)
+$LabelIP.Font                     = 'Microsoft Sans Serif,10'
 
 $lbl_info                        = New-Object system.Windows.Forms.Label
 $lbl_info.text                   = ""
@@ -57,11 +73,11 @@ $lbl_info.height                 = 10
 $lbl_info.location               = New-Object System.Drawing.Point(89,253)
 $lbl_info.Font                   = 'Microsoft Sans Serif,10'
 
-$Form.controls.AddRange(@($Button1,$ListBox1,$TextBoxNom,$Label1,$TextBoxMessage,$Label2,$lbl_info))
+$Form.controls.AddRange(@($Button1,$ListBox1,$TextBoxNom,$Label1,$TextBoxMessage,$Label2,$lbl_info,$TextBoxIP,$LabelIP))
 
 $Form.AutoSize = $true
 
-$Script:bool = $true
+
 
 Function Receive-TCPMessage {
     Param ( 
@@ -72,29 +88,28 @@ Function Receive-TCPMessage {
     Process {
         Try { 
             # Set up endpoint and start listening
-                $endpoint = new-object System.Net.IPEndPoint([ipaddress]::any,$port) 
-                $listener = new-object System.Net.Sockets.TcpListener $EndPoint
-                $listener.start() 
+            $endpoint = new-object System.Net.IPEndPoint([ipaddress]::any,$port)
+            $listener = new-object System.Net.Sockets.TcpListener $EndPoint
+            $listener.start() 
  
-                # Wait for an incoming connection 
-                $data = $listener.AcceptTcpClient() 
+            # Wait for an incoming connection 
+            $data = $listener.AcceptTcpClient() 
         
-                # Stream setup
-                $stream = $data.GetStream() 
-                $bytes = New-Object System.Byte[] 1024
+            # Stream setup
+            $stream = $data.GetStream() 
+            $bytes = New-Object System.Byte[] 1024
 
-                # Read data from stream and write it to host
-                while (($i = $stream.Read($bytes,0,$bytes.Length)) -ne 0){
-                    $EncodedText = New-Object System.Text.ASCIIEncoding
-                    $data = $EncodedText.GetString($bytes,0, $i)
-                    #Write-Host $data 
-                }
+            # Read data from stream and write it to host
+            while (($i = $stream.Read($bytes,0,$bytes.Length)) -ne 0){
+                $EncodedText = New-Object System.Text.ASCIIEncoding
+                $data = $EncodedText.GetString($bytes,0, $i)
+            }
                
-                $data               
+            $data               
                 
-                # Close TCP connection and stop listening
-                $stream.close()
-                $listener.stop()                
+            # Close TCP connection and stop listening
+            $stream.close()
+            $listener.stop()                
         }
         Catch {
             "Receive Message failed with: `n" + $Error[0]
@@ -196,6 +211,8 @@ Function serveur {
         $Form.ResumeLayout()
 }
 
+$Script:bool = $true
+
 $Form.Add_FormClosing({ 
     $Script:bool = $false
     Send-TCPMessage -Port 29800 -Endpoint 127.0.0.1 -message "Arret du serveur.." 
@@ -203,10 +220,15 @@ $Form.Add_FormClosing({
 
 $Button1.Add_Click({
     if(($TextBoxNom.Text -ne "") -and ($TextBoxMessage.Text -ne "")) { 
-        Send-TCPMessage -Port 29800 -Endpoint 192.168.0.22 -message ("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
-        $ListBox1.Items.Add("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
+        try{
+            Send-TCPMessage -Port 29800 -Endpoint $TextBoxIP.Text -message ("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
+            $ListBox1.Items.Add("$($TextBoxNom.Text): $($TextBoxMessage.Text)")
+            $lbl_info.Text = "Message envoyer !"
+        } catch {
+            $lbl_info.Text = "Message non envoyer !"
+        }        
         $TextBoxMessage.Clear()
-        $lbl_info.Text = "Message envoyer !"
+        
     } else {
         $lbl_info.Text = "Vous devez entrez votre nom ET un message"
     }
